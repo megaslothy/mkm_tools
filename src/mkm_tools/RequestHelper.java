@@ -1,5 +1,4 @@
 package mkm_tools;
-
    
    import java.io.BufferedReader;
    import java.io.InputStreamReader;
@@ -13,7 +12,7 @@ package mkm_tools;
    import javax.crypto.spec.SecretKeySpec;
    import javax.xml.bind.DatatypeConverter;
    
-   public class M11DedicatedApp {
+   public class RequestHelper {
        
        private String _mkmAppToken;
        private String _mkmAppSecret;
@@ -23,7 +22,10 @@ package mkm_tools;
        private Throwable _lastError;
        private int _lastCode;
        private String _lastContent;
-       private boolean _debug;
+       private static boolean _debug;
+       private static String _enviroment;
+       private static String _api;
+       private static String _url_mkm;
        
        /**
         * Constructor. Fill parameters according to given MKM profile app parameters.
@@ -33,7 +35,7 @@ package mkm_tools;
         * @param accessToken
         * @param accessSecret
         */
-       public M11DedicatedApp(String appToken, String appSecret, String accessToken, String accessSecret) {
+       public RequestHelper(String appToken, String appSecret, String accessToken, String accessSecret) {
            _mkmAppToken = appToken;
            _mkmAppSecret = appSecret;
            _mkmAccessToken = accessToken;
@@ -41,13 +43,17 @@ package mkm_tools;
            
            _lastError = null;
            _debug = false;
+           //_enviroment = "http://sandbox.mkmapi.eu/ws";
+           _enviroment = "http://www.mkmapi.eu/ws";
+           _api ="/v1.1";
+           _url_mkm = _enviroment + _api;
        }
        
        /**
         * Activates the console debug messages
         * @param flag true if you want to enable console messages; false to disable any notification.
         */
-       public void setDebug(boolean flag) {
+       public static void setDebug(boolean flag) {
            _debug = flag;
        }
        
@@ -139,7 +145,10 @@ package mkm_tools;
                HttpURLConnection connection = (HttpURLConnection) new URL(requestURL).openConnection();
                connection.addRequestProperty("Authorization", authorizationProperty) ;
                connection.connect() ;
-               
+               if (_debug) {
+	               System.out.println("CONTENT: "+connection.getResponseMessage());
+	               System.out.println("HEADER:"+connection.getHeaderFields());
+               }
                // from here standard actions... 
                // read response code... read input stream.... close connection...
                
@@ -147,19 +156,20 @@ package mkm_tools;
                
                _debug("Response Code is "+_lastCode);
                
-               if (200 == _lastCode || 401 == _lastCode || 404 == _lastCode) {
-                   BufferedReader rd = new BufferedReader(new InputStreamReader(_lastCode==200?connection.getInputStream():connection.getErrorStream()));  
+               if (200 == _lastCode || 401 == _lastCode || 404 == _lastCode || 206 == _lastCode) {
+                   BufferedReader rd = new BufferedReader(new InputStreamReader(_lastCode==206?connection.getInputStream():connection.getErrorStream()));  
                    StringBuffer sb = new StringBuffer();  
                    String line;  
                    while ((line = rd.readLine()) != null) {  
                        sb.append(line);  
+                       System.out.println(line);
                    }
                    rd.close();
                    _lastContent = sb.toString();
                    _debug("Response Content is \n"+_lastContent);
                }
                
-               return (_lastCode == 200);
+               return (_lastCode == 206);
                
            } catch (Exception e) {
                _debug("(!) Error while requesting "+requestURL);
@@ -187,46 +197,41 @@ package mkm_tools;
        public static void main(String[] args) {
            // USAGE EXAMPLE
            
-           String mkmAppToken = "XQvNxZpCYjok1lvx" ;
-           String mkmAppSecret = "8FenTpWbjGSEqgNwtMcKXKWgzQM7yhjm" ;
-           String mkmAccessToken = "Cir2elode6HVwKkKgxUvF8gsby235wu5" ;
-           String mkmAccessTokenSecret = "zAi9UlSDrpDCHucqwHSlwSnsyaDmhChT" ;			
+//    	   SANDBOX
+//    	   String mkmAppToken = "gdbEWQntcD5YNTSL";
+//    	   String mkmAppSecret = "s129kc2Ny0WwQPBn5ufkNdY5bq5QB3iD";
+//    	   String mkmAccessToken = "e7Ba5rgwjEWd6JAtLx5OpuNXbzx3tf7E";
+//    	   String mkmAccessTokenSecret = "5Vn8osnxcfWROwsiuZlpNLOmWVwnS0BF";
+    	   
+    	   String mkmAppToken = "XQvNxZpCYjok1lvx";
+    	   String mkmAppSecret = "8FenTpWbjGSEqgNwtMcKXKWgzQM7yhjm";
+    	   String mkmAccessToken = "Cir2elode6HVwKkKgxUvF8gsby235wu5";
+    	   String mkmAccessTokenSecret = "zAi9UlSDrpDCHucqwHSlwSnsyaDmhChT";
            
+           RequestHelper app = new RequestHelper(mkmAppToken, mkmAppSecret, mkmAccessToken, mkmAccessTokenSecret);
            
-           M11DedicatedApp app = new M11DedicatedApp(mkmAppToken, mkmAppSecret, mkmAccessToken, mkmAccessTokenSecret);
-           
-       
-           if (app.request("http://www.mkmapi.eu/ws/v1.1/account")) {
-               System.out.println(app.responseContent());
-           }
-           else {
-        	   System.out.println(app.responseCode());
-        	   System.out.println(app._lastError);
-        	   System.out.println(app.responseContent());
-        	   
-           }   
-           // test with active console debug
-//           app.setDebug(true);
-//           if (app.request("http://www.mkmapi.eu/ws/v1.1/products/island/1/1/false")) {
-//               // .. process(app.responseContent());
+//           if (app.request(_url_mkm+"/account")) {
+//               System.out.println(app.responseContent());
 //           }
-//           
-//           if (app.request("http://www.mkmapi.eu/ws/v1.1/products/serra_angel/1/1/false")) {
-//               // .. process(app.responseContent());
+//           else {
+//        	   System.out.println(app.responseCode());
+//        	   System.out.println(app._lastError);
+//        	   System.out.println(app.responseContent());
+//           }   
         	   
-//           }
-           if (app.request("http://www.mkmapi.eu/ws/v1.1/orders/1/4")) {
-        	   System.out.println(app.responseContent());
+           if (app.request(_url_mkm+"/orders/1/8/1")) {
+        	   app.request(_url_mkm+"/orders/1/8/101");
+        	   app.request(_url_mkm+"/orders/1/8/201");
+        	   
+        	   //DomParser.get_orders(app.responseContent());
+//        	   System.out.println(app.responseContent());
            }
            else {
         	   System.out.println("ERROR");
-        	   System.out.println(app.responseCode());
-        	   System.out.println(app._lastError);
-        	   System.out.println(app.responseContent());
-
+//        	   System.out.println(app.responseCode());
+//        	   System.out.println(app._lastError);
+//        	   System.out.println(app.responseContent());
+//        	   System.out.println(app._lastContent);
            }
-        	   
-           // etc....
        }
-   
    }
